@@ -15,6 +15,9 @@ import { ref, computed, watch } from "vue";
 
 const uBikeStops = ref([]);
 const searchWord = ref("");
+const sortedByAvailable = ref("");
+const sortedByTotal = ref("");
+const currentPage = ref(1);
 
 fetch(
   "https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediate.json"
@@ -33,6 +36,30 @@ const timeFormat = (val) => {
 const filteredStops = computed(() =>
   uBikeStops.value.filter((stop) => stop.sna.includes(searchWord.value))
 );
+
+const sortedStops = computed(() => {
+  if (!sortedByAvailable.value && !sortedByTotal.value) {
+    return filteredStops.value;
+  } else if (!sortedByAvailable.value && sortedByTotal.value) {
+    return sortedByTotal.value === "asc"
+      ? filteredStops.value.sort((aStop, bStop) => aStop.tot - bStop.tot)
+      : filteredStops.value.sort((aStop, bStop) => bStop.tot - aStop.tot);
+  } else if (sortedByAvailable.value && !sortedByTotal.value) {
+    return sortedByAvailable.value === "asc"
+      ? filteredStops.value.sort((aStop, bStop) => aStop.sbi - bStop.sbi)
+      : filteredStops.value.sort((aStop, bStop) => bStop.sbi - aStop.sbi);
+  }
+});
+
+const handleSort = (sortType, sortWay) => {
+  if (sortType === "availability") {
+    sortedByAvailable.value = sortWay;
+    sortedByTotal.value = "";
+  } else {
+    sortedByAvailable.value = "";
+    sortedByTotal.value = sortWay;
+  }
+};
 </script>
 
 <template>
@@ -47,19 +74,39 @@ const filteredStops = computed(() =>
           <th>場站區域</th>
           <th>
             目前可用車輛
-            <i class="fa fa-sort-asc" aria-hidden="true"></i>
-            <i class="fa fa-sort-desc" aria-hidden="true"></i>
+            <i
+              class="fa fa-sort-asc"
+              aria-hidden="true"
+              @click="handleSort('availability', 'asc')"
+              :style="'cursor: pointer'"
+            ></i>
+            <i
+              class="fa fa-sort-desc"
+              aria-hidden="true"
+              @click="handleSort('availability', 'desc')"
+              :style="'cursor: pointer'"
+            ></i>
           </th>
           <th>
             總停車格
-            <i class="fa fa-sort-asc" aria-hidden="true"></i>
-            <i class="fa fa-sort-desc" aria-hidden="true"></i>
+            <i
+              class="fa fa-sort-asc"
+              aria-hidden="true"
+              @click="handleSort('total', 'asc')"
+              :style="'cursor: pointer'"
+            ></i>
+            <i
+              class="fa fa-sort-desc"
+              aria-hidden="true"
+              @click="handleSort('total', 'desc')"
+              :style="'cursor: pointer'"
+            ></i>
           </th>
           <th>資料更新時間</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="s in filteredStops" :key="s.sno">
+        <tr v-for="s in sortedStops" :key="s.sno">
           <td>{{ s.sno }}</td>
           <td>{{ s.sna }}</td>
           <td>{{ s.sarea }}</td>
