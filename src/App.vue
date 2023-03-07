@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, reactive, computed, watch } from "vue";
 
 // 修改這份 YouBike 即時資訊表，並加上
 // 1. 站點名稱搜尋 v
@@ -14,6 +14,7 @@ import { ref, computed, watch } from "vue";
 // snaen：場站名稱(英文)、 aren：地址(英文)、 bemp：空位數量、 act：全站禁用狀態
 
 const uBikeStops = ref([]);
+const orignalBikeStops = ref([]);
 const currentPage = ref(1);
 const isHideStop = ref(false);
 const searchData = ref("");
@@ -24,26 +25,21 @@ const totalPageNumber = computed(() =>
     : Math.ceil(filterSearchStop.value.length / uniPageCount.value)
 );
 const showPageNumber = computed(() => {
-  //如果總頁數 <10 ，回傳 1~總頁數 的陣列
-  if (totalPageNumber <= 10) {
-    return Array.from(
-      { length: totalPageNumber.value },
-      (_, i) => totalPageNumber.value - i
-    ).sort();
+  //如果目前頁數-5 比一小，回傳1~10頁
+  if (currentPage.value - 5 < 1) {
+    return 0;
   }
   //如果目前頁數-5 大於等於1 且  +5小於等於總頁數，那從目前頁數-5的數字開始推10位做顯示
   if (
     currentPage.value - 5 >= 1 &&
     currentPage.value + 5 <= totalPageNumber.value
   ) {
-    return Array.from({ length: 10 }, (_, i) => currentPage.value - 5 + i);
+    return currentPage.value - 6;
   }
-  //如果目前頁數-5 比一小，回傳1~10頁
-  if (currentPage.value - 5 < 1) {
-    return Array.from({ length: 10 }, (_, i) => 1 + i);
+
+  if (currentPage.value + 10 > totalPageNumber.value) {
+    return totalPageNumber.value - 10;
   }
-  //都不是的話，回傳最後一頁往前推10頁，然後排序一下
-  return Array.from({ length: 10 }, (_, i) => totalPageNumber.value - i).sort();
 });
 fetch(
   "https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediate.json"
@@ -51,6 +47,7 @@ fetch(
   .then((res) => res.text())
   .then((data) => {
     uBikeStops.value = JSON.parse(data);
+    orignalBikeStops.value = JSON.parse(data);
   });
 
 const filterZeroStop = computed(() => {
@@ -76,30 +73,61 @@ const showData = computed(() => {
 });
 
 //false : ASC  ,true: DESC
-const sbistatus = ref(false);
-const totstatus = ref(false);
+const sbiOrder = reactive({
+  currentOrder: null,
+  sortOrder: ["asc", "desc", null],
+});
+const totOrder = reactive({
+  currentOrder: null,
+  sortOrder: ["asc", "desc", null],
+});
+
 const sortCondition = (data) => {
   switch (data) {
     case "sbi":
-      sortBy(data, sbistatus.value);
-      sbistatus.value = !sbistatus.value;
+      sbiOrder.currentOrder =
+        sbiOrder.sortOrder.indexOf(sbiOrder.currentOrder) !== 2
+          ? sbiOrder.sortOrder[
+              sbiOrder.sortOrder.indexOf(sbiOrder.currentOrder) + 1
+            ]
+          : sbiOrder.sortOrder[0];
+      sortBy(data, sbiOrder.currentOrder);
       break;
     case "tot":
-      sortBy(data, totstatus.value);
-      totstatus.value = !totstatus.value;
+      totOrder.currentOrder =
+        totOrder.sortOrder.indexOf(totOrder.currentOrder) !== 2
+          ? totOrder.sortOrder[
+              totOrder.sortOrder.indexOf(totOrder.currentOrder) + 1
+            ]
+          : totOrder.sortOrder[0];
+      sortBy(data, totOrder.currentOrder);
   }
 };
 
-const sortBy = (data, sb) => {
-  if (!sb) {
-    uBikeStops.value = uBikeStops.value.sort((a, b) => a[data] - b[data]);
-  } else {
-    uBikeStops.value = uBikeStops.value.sort((a, b) => b[data] - a[data]);
+const sortBy = (data, currentOrder) => {
+  switch (currentOrder) {
+    case "asc":
+      uBikeStops.value = uBikeStops.value.sort((a, b) => a[data] - b[data]);
+      break;
+    case "desc":
+      uBikeStops.value = uBikeStops.value.sort((a, b) => b[data] - a[data]);
+      break;
+    default:
+      uBikeStops.value = [...orignalBikeStops.value];
+      break;
   }
 };
 
 watch([searchData, isHideStop], () => {
   currentPage.value = 1;
+});
+watch(sbiOrder, (nVal) => {
+  totOrder.currentOrder =
+    nVal.currentOrder !== null ? null : totOrder.currentOrder;
+});
+watch(totOrder, (nVal) => {
+  sbiOrder.currentOrder =
+    nVal.currentOrder !== null ? null : sbiOrder.currentOrder;
 });
 
 const timeFormat = (val) => {
@@ -127,14 +155,31 @@ const timeFormat = (val) => {
           <th @click="sortCondition('sbi')">
             目前可用車輛
 
-            <i class="fa fa-sort-asc" aria-hidden="true"></i>
-            <i class="fa fa-sort-desc" aria-hidden="true"></i>
+            <i
+              class="fa fa-sort-asc"
+              aria-hidden="true"
+              v-if="sbiOrder.currentOrder === 'asc'"
+            ></i>
+
+            <i
+              class="fa fa-sort-desc"
+              aria-hidden="true"
+              v-if="sbiOrder.currentOrder === 'desc'"
+            ></i>
           </th>
           <th @click="sortCondition('tot')">
             總停車格
 
-            <i class="fa fa-sort-asc" aria-hidden="true"></i>
-            <i class="fa fa-sort-desc" aria-hidden="true"></i>
+            <i
+              class="fa fa-sort-asc"
+              aria-hidden="true"
+              v-if="totOrder.currentOrder === 'asc'"
+            ></i>
+            <i
+              class="fa fa-sort-desc"
+              aria-hidden="true"
+              v-if="totOrder.currentOrder === 'desc'"
+            ></i>
           </th>
           <th>資料更新時間</th>
         </tr>
@@ -163,13 +208,25 @@ const timeFormat = (val) => {
       </template>
 
       <button
+        v-if="totalPageNumber < 10"
         :class="{ 'current-page': currentPage === number }"
         @click="currentPage = number"
-        v-for="(number, index) in showPageNumber"
+        v-for="(number, index) in totalPageNumber"
         :key="index + 'stoplength'"
       >
         {{ number }}
       </button>
+
+      <button
+        v-else
+        :class="{ 'current-page': currentPage === number + showPageNumber }"
+        @click="currentPage = number + showPageNumber"
+        v-for="(number, index) in 10"
+        :key="index + 'st'"
+      >
+        {{ number + showPageNumber }}
+      </button>
+
       <template v-if="currentPage !== totalPageNumber">
         <button @click="currentPage += 1">
           <i class="fa fa-chevron-right" aria-hidden="true"></i>
@@ -213,5 +270,17 @@ label:first-of-type {
 
 .page-number .current-page {
   background-color: #f2f2f2;
+}
+
+.fa-sort-desc,
+.fa-sort-asc {
+  position: relative;
+}
+.fa-sort-desc {
+  bottom: 3px;
+}
+
+.fa-sort-asc {
+  top: 3px;
 }
 </style>
