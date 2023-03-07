@@ -34,7 +34,9 @@ const timeFormat = (val) => {
 };
 
 const filteredStops = computed(() =>
-  uBikeStops.value.filter((stop) => stop.sna.includes(searchWord.value))
+  uBikeStops.value.filter((stop) =>
+    stop.sna.toLowerCase().includes(searchWord.value.toLowerCase())
+  )
 );
 
 const sortedStops = computed(() => {
@@ -42,14 +44,29 @@ const sortedStops = computed(() => {
     return filteredStops.value;
   } else if (!sortedByAvailable.value && sortedByTotal.value) {
     return sortedByTotal.value === "asc"
-      ? filteredStops.value.sort((aStop, bStop) => aStop.tot - bStop.tot)
-      : filteredStops.value.sort((aStop, bStop) => bStop.tot - aStop.tot);
+      ? [...filteredStops.value].sort((aStop, bStop) => aStop.tot - bStop.tot)
+      : [...filteredStops.value].sort((aStop, bStop) => bStop.tot - aStop.tot);
   } else if (sortedByAvailable.value && !sortedByTotal.value) {
     return sortedByAvailable.value === "asc"
-      ? filteredStops.value.sort((aStop, bStop) => aStop.sbi - bStop.sbi)
-      : filteredStops.value.sort((aStop, bStop) => bStop.sbi - aStop.sbi);
+      ? [...filteredStops.value].sort((aStop, bStop) => aStop.sbi - bStop.sbi)
+      : [...filteredStops.value].sort((aStop, bStop) => bStop.sbi - aStop.sbi);
   }
 });
+
+const paginatedStops = computed(() =>
+  sortedStops.value.filter(
+    (_, index) =>
+      index > 20 * (currentPage.value - 1) && index <= 20 * currentPage.value
+  )
+);
+
+const isDivisible = computed(() => sortedStops.value.length % 20 === 0);
+
+const totalPages = computed(() =>
+  isDivisible.value
+    ? sortedStops.value.length / 20
+    : Math.floor(sortedStops.value.length / 20) + 1
+);
 
 const handleSort = (sortType, sortWay) => {
   if (sortType === "availability") {
@@ -60,11 +77,36 @@ const handleSort = (sortType, sortWay) => {
     sortedByTotal.value = sortWay;
   }
 };
+
+const sortByNumbers = () => {
+  console.log(
+    "sortedByAvailable:",
+    sortedByAvailable.value,
+    "sortedByTotal:",
+    sortedByTotal.value
+  );
+  sortedByAvailable.value = "";
+  sortedByTotal.value = "";
+};
+
+watch(
+  () => searchWord.value,
+  (newWord) => {
+    if (newWord) {
+      currentPage.value = 1;
+    }
+  }
+);
 </script>
 
 <template>
   <div class="app">
-    <p>站點名稱搜尋: <input type="text" v-model="searchWord" /></p>
+    <div class="upper-section">
+      <p>站點名稱搜尋: <input type="text" v-model.trim="searchWord" /></p>
+      <button type="button" class="number-sort" @click="sortByNumbers">
+        按編號排序
+      </button>
+    </div>
 
     <table class="table table-striped">
       <thead>
@@ -106,7 +148,7 @@ const handleSort = (sortType, sortWay) => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="s in sortedStops" :key="s.sno">
+        <tr v-for="s in paginatedStops" :key="s.sno">
           <td>{{ s.sno }}</td>
           <td>{{ s.sna }}</td>
           <td>{{ s.sarea }}</td>
@@ -116,11 +158,59 @@ const handleSort = (sortType, sortWay) => {
         </tr>
       </tbody>
     </table>
+
+    <div>
+      <ul>
+        <li
+          v-for="n in totalPages"
+          :style="
+            currentPage === n ? 'background-color: blue; color: white' : ''
+          "
+          @click="currentPage = n"
+        >
+          {{ n }}
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .app {
   padding: 1rem;
+}
+
+.upper-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.number-sort {
+  background-color: antiquewhite;
+  border: 1px solid gold;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+ul {
+  display: flex;
+  justify-content: start;
+  flex-wrap: wrap;
+  padding-left: 10px;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  margin-top: 6px;
+  width: 30px;
+  height: 30px;
+  list-style: none;
+  background-color: rgb(127, 197, 255);
+  border-radius: 5px;
+  cursor: pointer;
 }
 </style>
