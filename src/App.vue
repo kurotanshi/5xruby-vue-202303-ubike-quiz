@@ -15,8 +15,8 @@ import { ref, computed, watch } from "vue";
 
 const uBikeStops = ref([]);
 const searchWord = ref("");
-const sortedByAvailable = ref("");
-const sortedByTotal = ref("");
+const currentSort = ref("");
+const isOrderAsc = ref(true);
 const currentPage = ref(1);
 
 fetch(
@@ -40,16 +40,16 @@ const filteredStops = computed(() =>
 );
 
 const sortedStops = computed(() => {
-  if (!sortedByAvailable.value && !sortedByTotal.value) {
+  if (!currentSort.value) {
     return filteredStops.value;
-  } else if (!sortedByAvailable.value && sortedByTotal.value) {
-    return sortedByTotal.value === "asc"
-      ? [...filteredStops.value].sort((aStop, bStop) => aStop.tot - bStop.tot)
-      : [...filteredStops.value].sort((aStop, bStop) => bStop.tot - aStop.tot);
-  } else if (sortedByAvailable.value && !sortedByTotal.value) {
-    return sortedByAvailable.value === "asc"
-      ? [...filteredStops.value].sort((aStop, bStop) => aStop.sbi - bStop.sbi)
-      : [...filteredStops.value].sort((aStop, bStop) => bStop.sbi - aStop.sbi);
+  } else {
+    return isOrderAsc.value
+      ? [...filteredStops.value].sort(
+          (aStop, bStop) => aStop[currentSort.value] - bStop[currentSort.value]
+        )
+      : [...filteredStops.value].sort(
+          (aStop, bStop) => bStop[currentSort.value] - aStop[currentSort.value]
+        );
   }
 });
 
@@ -60,33 +60,22 @@ const paginatedStops = computed(() =>
   )
 );
 
-const isDivisible = computed(() => sortedStops.value.length % 20 === 0);
-
-const totalPages = computed(() =>
-  isDivisible.value
-    ? sortedStops.value.length / 20
-    : Math.floor(sortedStops.value.length / 20) + 1
-);
+const totalPages = computed(() => Math.ceil(sortedStops.value.length / 20));
+const largerThan9 = computed(() => totalPages.value - currentPage.value > 9);
+const leftPages = computed(() => totalPages.value - currentPage.value + 1);
 
 const handleSort = (sortType, sortWay) => {
   if (sortType === "availability") {
-    sortedByAvailable.value = sortWay;
-    sortedByTotal.value = "";
+    currentSort.value = "sbi";
   } else {
-    sortedByAvailable.value = "";
-    sortedByTotal.value = sortWay;
+    currentSort.value = "tot";
   }
+  isOrderAsc.value = sortWay === "asc";
 };
 
 const sortByNumbers = () => {
-  console.log(
-    "sortedByAvailable:",
-    sortedByAvailable.value,
-    "sortedByTotal:",
-    sortedByTotal.value
-  );
-  sortedByAvailable.value = "";
-  sortedByTotal.value = "";
+  currentSort.value = "sno";
+  isOrderAsc.value = true;
 };
 
 watch(
@@ -103,9 +92,22 @@ watch(
   <div class="app">
     <div class="upper-section">
       <p>站點名稱搜尋: <input type="text" v-model.trim="searchWord" /></p>
-      <button type="button" class="number-sort" @click="sortByNumbers">
-        按編號排序
-      </button>
+      <div class="order-section">
+        <p v-if="currentSort === 'sbi'" class="sort-hint">
+          目前按「可用車輛」數{{ isOrderAsc ? "升冪" : "降冪" }}排序
+        </p>
+        <p v-if="currentSort === 'tot'" class="sort-hint">
+          目前按「總停車格」數{{ isOrderAsc ? "升冪" : "降冪" }}排序
+        </p>
+        <button
+          v-if="currentSort === 'sbi' || currentSort === 'tot'"
+          type="button"
+          class="number-sort"
+          @click="sortByNumbers"
+        >
+          按編號排序
+        </button>
+      </div>
     </div>
 
     <table class="table table-striped">
@@ -159,18 +161,47 @@ watch(
       </tbody>
     </table>
 
-    <div>
-      <ul>
+    <div v-if="totalPages >= 1" class="page-section">
+      <div
+        class="page-control"
+        v-if="currentPage > 1 && totalPages >= 1"
+        @click="currentPage -= 1"
+      >
+        上一頁
+      </div>
+      <ul v-if="largerThan9">
         <li
-          v-for="n in totalPages"
+          v-for="(_, index) in 9"
           :style="
-            currentPage === n ? 'background-color: blue; color: white' : ''
+            currentPage === currentPage + index
+              ? 'background-color: blue; color: white'
+              : ''
           "
-          @click="currentPage = n"
+          @click="currentPage = currentPage + index"
         >
-          {{ n }}
+          {{ currentPage + index }}
         </li>
       </ul>
+      <ul v-else>
+        <li
+          v-for="(_, index) in leftPages"
+          :style="
+            currentPage === currentPage + index
+              ? 'background-color: blue; color: white'
+              : ''
+          "
+          @click="currentPage = currentPage + index"
+        >
+          {{ currentPage + index }}
+        </li>
+      </ul>
+      <div
+        class="page-control"
+        v-if="totalPages > currentPage"
+        @click="currentPage += 1"
+      >
+        下一頁
+      </div>
     </div>
   </div>
 </template>
@@ -186,6 +217,19 @@ watch(
   justify-content: space-between;
 }
 
+.order-section {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sort-hint {
+  display: block;
+  margin: 0;
+  margin-right: 12px;
+  font-weight: 700;
+}
+
 .number-sort {
   background-color: antiquewhite;
   border: 1px solid gold;
@@ -193,11 +237,19 @@ watch(
   border-radius: 8px;
 }
 
+.page-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+}
+
 ul {
   display: flex;
   justify-content: start;
   flex-wrap: wrap;
   padding-left: 10px;
+  margin: 0 10px;
 }
 
 li {
@@ -205,12 +257,24 @@ li {
   align-items: center;
   justify-content: center;
   margin-right: 6px;
-  margin-top: 6px;
   width: 30px;
   height: 30px;
   list-style: none;
   background-color: rgb(127, 197, 255);
   border-radius: 5px;
   cursor: pointer;
+}
+
+.page-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0 10px;
+  height: 30px;
+}
+
+.page-control:hover {
+  background-color: antiquewhite;
 }
 </style>
