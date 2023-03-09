@@ -18,6 +18,7 @@ const searchWord = ref("");
 const currentSort = ref("");
 const isOrderAsc = ref(true);
 const currentPage = ref(1);
+const headingPage = ref(null);
 
 fetch(
   "https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediate.json"
@@ -204,7 +205,9 @@ watch(
         後十頁
       </div>
     </div>
-    <!-- <div class=""></div> -->
+    <div v-if="totalPages > 9" class="total-page">
+      <p>共 {{ totalPages }} 頁</p>
+    </div>
   </div>
 </template>
 
@@ -286,5 +289,12 @@ li {
 .more-page:hover {
   background-color: rgb(84, 87, 235);
   color: white;
+}
+
+.total-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1rem 0;
 }
 </style>
