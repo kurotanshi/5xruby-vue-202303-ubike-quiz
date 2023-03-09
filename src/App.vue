@@ -61,8 +61,6 @@ const paginatedStops = computed(() =>
 );
 
 const totalPages = computed(() => Math.ceil(sortedStops.value.length / 20));
-const largerThan9 = computed(() => totalPages.value - currentPage.value > 9);
-const leftPages = computed(() => totalPages.value - currentPage.value + 1);
 
 const handleSort = (sortType, sortWay) => {
   if (sortType === "availability") {
@@ -163,37 +161,33 @@ watch(
 
     <div v-if="totalPages >= 1" class="page-section">
       <div
+        class="page-control more-page"
+        v-if="currentPage > 10 && totalPages >= 11"
+        @click="currentPage -= 10"
+      >
+        前十頁
+      </div>
+      <div
         class="page-control"
         v-if="currentPage > 1 && totalPages >= 1"
         @click="currentPage -= 1"
       >
         上一頁
       </div>
-      <ul v-if="largerThan9">
-        <li
-          v-for="(_, index) in 9"
-          :style="
-            currentPage === currentPage + index
-              ? 'background-color: blue; color: white'
-              : ''
-          "
-          @click="currentPage = currentPage + index"
-        >
-          {{ currentPage + index }}
-        </li>
-      </ul>
-      <ul v-else>
-        <li
-          v-for="(_, index) in leftPages"
-          :style="
-            currentPage === currentPage + index
-              ? 'background-color: blue; color: white'
-              : ''
-          "
-          @click="currentPage = currentPage + index"
-        >
-          {{ currentPage + index }}
-        </li>
+      <ul>
+        <template v-for="(_, index) in 9">
+          <li
+            v-if="currentPage + index <= totalPages"
+            :style="
+              currentPage === currentPage + index
+                ? 'background-color: blue; color: white'
+                : ''
+            "
+            @click="currentPage = currentPage + index"
+          >
+            {{ currentPage + index }}
+          </li>
+        </template>
       </ul>
       <div
         class="page-control"
@@ -202,7 +196,15 @@ watch(
       >
         下一頁
       </div>
+      <div
+        class="page-control more-page"
+        v-if="totalPages > currentPage + 10"
+        @click="currentPage += 10"
+      >
+        後十頁
+      </div>
     </div>
+    <!-- <div class=""></div> -->
   </div>
 </template>
 
@@ -275,6 +277,14 @@ li {
 }
 
 .page-control:hover {
-  background-color: antiquewhite;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background-color: rgb(174, 214, 247);
+  color: white;
+}
+
+.more-page:hover {
+  background-color: rgb(84, 87, 235);
+  color: white;
 }
 </style>
