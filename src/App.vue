@@ -23,10 +23,24 @@ fetch('https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediat
 
 const bicycle = ref('');
 const pageActive = ref(1);
+const listPages = ref('');
 const Site = computed(() => {
+
+  const rangeRow = uBikeStops.value.filter(all => all.sna.includes(bicycle.value));
+    if(listPages.value == 'sbi'){
+      rangeRow.sort((a, b) => a.sbi - b.sbi);
+    }
+    else if(listPages.value == 'tot'){
+      rangeRow.sort((a, b) => a.tot - b.tot);
+    }
+    return rangeRow.slice((pageActive.value-1)*20,(pageActive.value*20));
+
   return uBikeStops.value.filter(all => all.sna.includes(bicycle.value)).slice((pageActive.value-1)*20,(pageActive.value*20));
+
 }); 
 //const Site = computed(() => uBikeStops.value.filter(all => all.sna.includes(bicycle.value))); 
+
+const upDeta = (val) => {listPages.value=val}
 
 const pageChange = (val) => {pageActive.value++};
 const pagePrecious = (val) => {pageActive.value--};
@@ -54,11 +68,11 @@ const timeFormat = (val) => {
         <th>場站名稱</th>
         <th>場站區域</th>
         <th>目前可用車輛
-          <i class="fa fa-sort-asc" aria-hidden="true"></i>
+          <i @click="upDeta('sbi')" class="fa fa-sort-asc" aria-hidden="true"></i>
           <i class="fa fa-sort-desc" aria-hidden="true"></i>
         </th>
         <th>總停車格
-          <i class="fa fa-sort-asc" aria-hidden="true"></i>
+          <i @click="upDeta('tot')" class="fa fa-sort-asc" aria-hidden="true"></i>
           <i class="fa fa-sort-desc" aria-hidden="true"></i>
         </th>
         <th>資料更新時間</th>
