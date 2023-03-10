@@ -26,6 +26,7 @@ const timeFormat = (val) => {
   return val.replace(pattern, '$1/$2/$3 $4:$5:$6');
 };
 
+
 // 站點名稱搜尋
 const searchSno = ref('');
 const searchSnoResult = computed(() => {
@@ -34,54 +35,71 @@ const searchSnoResult = computed(() => {
   });
 });
 
-// 可用車輛的排序功能
-const sortSareaType = ref('');
-const sortedSearchSnoResult = computed(() => {
-  // 因為 Vue 計算屬性是唯讀的，直接修改其值可能會導致意外行為
-  // 所以這裡先複製一份出來
-  const results = searchSnoResult.value.slice(); 
-  if (sortSareaType.value === 'asc') {
-    return results.sort((a, b) => a.sbi - b.sbi);
-  } else {
-    return results.sort((a, b) => b.sbi - a.sbi);
-  }
-});
+// 目前的排序欄位 ('sbi', 'tot')
+const currentSort = ref('');
+// 目前的排序方向 ('', 'asc', 'desc')
+const currentSortDir = ref('');
 
-// 總停車格的排序功能
-const sortTotType = ref('');
-const sortedSearchTotResult = computed(() => {
-  const results = searchSnoResult.value.slice(); 
-  if (sortTotType.value === 'asc') {
-    return results.sort((a, b) => a.tot - b.tot);
+// 排序功能
+const sortBy = (key) => {
+  if (currentSort.value === key) {
+    currentSortDir.value = currentSortDir.value === 'asc' ? 'desc' : 'asc';
   } else {
-    return results.sort((a, b) => b.tot - a.tot);
+    currentSort.value = key;
+    currentSortDir.value = 'asc';
   }
-});
+};
 
-// filter完結果
-const filteredResult = computed(() => {
-  if (sortSareaType.value) {
-    return sortedSearchSnoResult.value;
-  } else if (sortTotType.value) {
-    return sortedSearchTotResult.value;
+// 排序樣式狀態
+const sortIcon = (key) => {
+  if (currentSort.value === key) {
+    return currentSortDir.value === 'asc' ? 'bi-caret-up-fill' : 'bi-caret-down-fill';
   } else {
-    return searchSnoResult.value;
+    return 'bi-caret-up';
   }
+};
+
+// sort完結果
+const sortedResult = computed(() => {
+  const results = searchSnoResult.value.slice(); 
+
+  // 如果有設定排序欄位，就依照欄位排序，並判斷 asc or desc
+  if (currentSort.value) {
+    results.sort((a, b) => {
+      if (a[currentSort.value] > b[currentSort.value]) {
+        return currentSortDir.value === 'asc' ? 1 : -1;
+      } else if (a[currentSort.value] < b[currentSort.value]) {
+        return currentSortDir.value === 'asc' ? -1 : 1;
+      } else {
+        return 0;
+      }
+    });
+  }
+
+    // 回傳排序後的結果
+    return results;
 });
 
 // 分頁功能
 const currentPage = ref(1);
 const perPage = ref(20);
 const totalPages = computed(() => {
-  return Math.ceil(filteredResult.value.length / perPage.value);
+  return Math.ceil(sortedResult.value.length / perPage.value);
+});
+
+// 當 searchSno 改變時，currentPage 也要重置為 1，並且清除排序
+watch(searchSnoResult, () =>  {
+  currentPage.value = 1;
+  currentSort.value = '';
+  currentSortDir.value = '';
 });
 
 // 分頁結果
-const filteredResultByPage = computed(() => {
+const sortedResultByPage = computed(() => {
   const start = (currentPage.value - 1) * perPage.value;
   const end = start + perPage.value;
   // slice() 方法可從已有的陣列中回傳選定的元素。
-  return filteredResult.value.slice(start, end);
+  return sortedResult.value.slice(start, end);
 });
 
 </script>
@@ -101,22 +119,16 @@ const filteredResultByPage = computed(() => {
         <th>場站名稱</th>
         <th>場站區域</th>
         <th>目前可用車輛
-          <i :class="{ 'bi bi-caret-up-fill': sortSareaType === 'asc', 'bi bi-caret-up': sortSareaType === 'desc' || sortSareaType === '' }" 
-          aria-hidden="true" @click="{sortSareaType = 'asc'; sortTotType = ''}"></i>
-          <i :class="{ 'bi bi-caret-down': sortSareaType === 'asc' || sortSareaType === '', 'bi bi-caret-down-fill': sortSareaType === 'desc'}" 
-          aria-hidden="true" @click="{sortSareaType = 'desc'; sortTotType = ''}"></i>
+          <i :class="sortIcon('sbi')" aria-hidden="true" @click="sortBy('sbi')"></i>
         </th>
         <th>總停車格
-          <i :class="{ 'bi bi-caret-up-fill': sortTotType === 'asc', 'bi bi-caret-up': sortTotType === 'desc' || sortTotType === '' }" 
-          aria-hidden="true" @click="{sortTotType = 'asc';sortSareaType = '' }"></i>
-          <i :class="{ 'bi bi-caret-down': sortTotType === 'asc' || sortTotType === '', 'bi bi-caret-down-fill': sortTotType === 'desc'}" 
-          aria-hidden="true" @click="{sortTotType = 'desc';sortSareaType = '' }"></i>
+          <i :class="sortIcon('tot')" aria-hidden="true" @click="sortBy('tot')"></i>
         </th>
         <th>資料更新時間</th>
       </tr>
     </thead>
     <tbody>
-      <tr v-for="s in filteredResultByPage" :key="s.sno">
+      <tr v-for="s in sortedResultByPage" :key="s.sno">
         <td>{{ s.sno }}</td>
         <td>{{ s.sna }}</td>
         <td>{{ s.sarea }}</td>
