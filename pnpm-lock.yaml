@@ -2,11 +2,13 @@ lockfileVersion: 5.4
 
 specifiers:
   '@vitejs/plugin-vue': ^4.0.0
+  hammerjs: ^2.0.8
   sass: ^1.58.3
   vite: ^4.1.4
   vue: ^3.2.47
 
 dependencies:
+  hammerjs: 2.0.8
   vue: 3.2.47
 
 devDependencies:
@@ -417,6 +419,11 @@ packages:
     dependencies:
       is-glob: 4.0.3
     dev: true
+
+  /hammerjs/2.0.8:
+    resolution: {integrity: sha512-tSQXBXS/MWQOn/RKckawJ61vvsDpCom87JgxiYdGwHdOa0ht0vzUWDlfioofFCRU0L+6NGDt6XzbgoJvZkMeRQ==}
+    engines: {node: '>=0.8.0'}
+    dev: false
 
   /has/1.0.3:
     resolution: {integrity: sha512-f2dvO0VU6Oej7RkWJGrehjbzMAjFp5/VKPp5tTpWIV4JHHZK1/BxbFRtf/siA2SWTe09caDmVtYYzWEIbBS4zw==}

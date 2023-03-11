@@ -1,5 +1,7 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import Hammer from 'hammerjs';
+
 // 修改這份 YouBike 即時資訊表，並加上
 // 1. 站點名稱搜尋
 // 2. 目前可用車輛 / 總停車格 的排序功能
@@ -118,6 +120,22 @@ const keywordsHighlight = (text, keyword) => {
   const reg = new RegExp(keyword, 'gi');
   return text.replace(reg, `<span style="color: red;">${keyword}</span>`);
 };
+
+const table = ref(null);
+
+onMounted(() => {
+  const hammertime = new Hammer(table.value, {});
+  hammertime.on('swipeleft', e => {
+    console.log('swipeleft');
+    setPage(currentPage.value + 1);
+  });
+
+  hammertime.on('swiperight', e => {
+    console.log('swiperight');
+    setPage(currentPage.value - 1);
+  });
+});
+
 </script>
 
 <template>
@@ -126,7 +144,7 @@ const keywordsHighlight = (text, keyword) => {
       站點名稱搜尋: <input type="text" v-model="searchText">
     </p>
 
-    <table class="table table-striped">
+    <table class="table table-striped" ref="table">
       <thead>
         <tr>
           <th @click="setSort('sno')">
@@ -161,7 +179,11 @@ const keywordsHighlight = (text, keyword) => {
       <tbody>
         <!-- 替換成 slicedUbikeStops -->
         <tr v-for="s in slicedUbikeStops" :key="s.sno">
-          <td>{{ s.sno }}</td>
+          <td>
+            <div class="sno">
+              {{ s.sno }}
+            </div>
+          </td>
           <!-- <td>{{ s.sna }}</td> -->
           <td v-html="keywordsHighlight(s.sna, searchText)"></td>
           <td>{{ s.sarea }}</td>
@@ -204,5 +226,14 @@ const keywordsHighlight = (text, keyword) => {
 .pagination {
   display: flex;
   justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .sno {
+    max-width: 50px; word-wrap: break-word;
+  }
+  .table td, .table th {
+    padding: .5rem .25rem;
+  }
 }
 </style>
