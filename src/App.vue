@@ -205,4 +205,13 @@ const keywordsHighlight = (text, keyword) => {
   display: flex;
   justify-content: center;
 }
+
+@media (max-width: 768px) {
+  .sno {
+    max-width: 50px; word-wrap: break-word;
+  }
+  .table td, .table th {
+    padding: .5rem .25rem;
+  }
+}
 </style>
