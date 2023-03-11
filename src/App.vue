@@ -112,6 +112,12 @@ const setSort = sortType => {
     isSortDesc.value = false;
   }
 };
+
+// 關鍵字 Highlight
+const keywordsHighlight = (text, keyword) => {
+  const reg = new RegExp(keyword, 'gi');
+  return text.replace(reg, `<span style="color: red;">${keyword}</span>`);
+};
 </script>
 
 <template>
@@ -156,7 +162,8 @@ const setSort = sortType => {
         <!-- 替換成 slicedUbikeStops -->
         <tr v-for="s in slicedUbikeStops" :key="s.sno">
           <td>{{ s.sno }}</td>
-          <td>{{ s.sna }}</td>
+          <!-- <td>{{ s.sna }}</td> -->
+          <td v-html="keywordsHighlight(s.sna, searchText)"></td>
           <td>{{ s.sarea }}</td>
           <td>{{ s.sbi }}</td>
           <td>{{ s.tot }}</td>
@@ -185,10 +192,11 @@ const setSort = sortType => {
   </nav>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .app {
   padding: 1rem;
 }
+
 .pointer {
   cursor: pointer;
 }
