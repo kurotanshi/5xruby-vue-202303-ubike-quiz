@@ -21,6 +21,33 @@ fetch('https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediat
     uBikeStops.value = JSON.parse(data);
   });
 
+const bicycle = ref('');
+const pageActive = ref(1);
+const listPages = ref('');
+const Site = computed(() => {
+
+  const rangeRow = uBikeStops.value.filter(all => all.sna.includes(bicycle.value));
+    if(listPages.value == 'sbi'){
+      rangeRow.sort((a, b) => a.sbi - b.sbi);
+    }
+    else if(listPages.value == 'tot'){
+      rangeRow.sort((a, b) => a.tot - b.tot);
+    }
+    return rangeRow.slice((pageActive.value-1)*20,(pageActive.value*20));
+
+  return uBikeStops.value.filter(all => all.sna.includes(bicycle.value)).slice((pageActive.value-1)*20,(pageActive.value*20));
+
+}); 
+//const Site = computed(() => uBikeStops.value.filter(all => all.sna.includes(bicycle.value))); 
+
+const upDeta = (val) => {listPages.value=val}
+
+const pageChange = (val) => {pageActive.value++};
+const pagePrecious = (val) => {pageActive.value--};
+
+// watch(() => console.log(pageActive.value));
+
+
 const timeFormat = (val) => {
   // 時間格式
   const pattern = /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/;
@@ -31,7 +58,7 @@ const timeFormat = (val) => {
 <template>
 <div class="app">
   <p>
-    站點名稱搜尋: <input type="text">
+    站點名稱搜尋: <input v-model="bicycle" type="text">
   </p>
 
   <table class="table table-striped">
@@ -41,18 +68,18 @@ const timeFormat = (val) => {
         <th>場站名稱</th>
         <th>場站區域</th>
         <th>目前可用車輛
-          <i class="fa fa-sort-asc" aria-hidden="true"></i>
+          <i @click="upDeta('sbi')" class="fa fa-sort-asc" aria-hidden="true"></i>
           <i class="fa fa-sort-desc" aria-hidden="true"></i>
         </th>
         <th>總停車格
-          <i class="fa fa-sort-asc" aria-hidden="true"></i>
+          <i @click="upDeta('tot')" class="fa fa-sort-asc" aria-hidden="true"></i>
           <i class="fa fa-sort-desc" aria-hidden="true"></i>
         </th>
         <th>資料更新時間</th>
       </tr>
     </thead>
     <tbody>
-      <tr v-for="s in uBikeStops" :key="s.sno">
+      <tr v-for="s in Site" :key="s.sno">
         <td>{{ s.sno }}</td>
         <td>{{ s.sna }}</td>
         <td>{{ s.sarea }}</td>
@@ -62,11 +89,38 @@ const timeFormat = (val) => {
       </tr>
     </tbody>
   </table>
+  <ul>
+    <li class="pager" @click="pagePrecious"><a href="#">&lt;</a></li>
+    <li v-for="pages in 10" @click="pageActive=pages" class="pager">
+      <a :class="{'page-color': pages === pageActive}" href="#">{{ pages }}</a>
+    </li>
+    <li class="pager" @click="pageChange"><a href="#">&gt;</a></li>
+  </ul>
 </div>
 </template>
 
 <style scoped>
 .app {
   padding: 1rem;
+}
+.page-color {
+  color: red;
+}
+.pager {
+      float: left;
+      display: block;
+      width: 4rem;
+      height: 20px;
+      text-align: center;
+      line-height: 0;
+      margin-right: 5px;
+      margin-bottom: 30px;
+      padding: 5px;
+      border: 1px solid #aaa;
+      padding: 1rem;
+      font-size: 1.33rem;
+    }
+.pager a {
+  text-decoration: none;
 }
 </style>
