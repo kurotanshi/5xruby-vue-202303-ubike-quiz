@@ -16,17 +16,11 @@ import { ref, computed, watch } from 'vue';
 const currentSort = ref('sno');
 // 是否為降冪排序
 const isSortDesc = ref(false);
+
 // 所有站點資料
 const uBikeStops = ref([]);
 // 搜尋文字
 const searchText = ref('');
-// 目前頁碼
-const currentPage = ref(1);
-
-// 一頁幾筆資料
-const COUNT_OF_PAGE = 20;
-// 最多顯示幾頁
-const PAGINATION_MAX = 10;
 
 fetch('https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediate.json')
   .then(res => res.text())
@@ -55,10 +49,18 @@ const filtedUbikeStops = computed(() => {
 // 排序後的站點資料
 const sortedUbikeStops = computed(() => {
   const filtedStops = [...filtedUbikeStops.value];
+
   return isSortDesc.value
     ? filtedStops.sort((a, b) => b[currentSort.value] - a[currentSort.value])
     : filtedStops.sort((a, b) => a[currentSort.value] - b[currentSort.value]);
 });
+
+// 目前頁碼
+const currentPage = ref(1);
+// 一頁幾筆資料
+const COUNT_OF_PAGE = 10;
+// 最多顯示幾頁
+const PAGINATION_MAX = 10;
 
 // 分頁後的站點資料
 const slicedUbikeStops = computed(() => {
@@ -115,6 +117,7 @@ const setSort = sortType => {
 
 // 關鍵字 Highlight
 const keywordsHighlight = (text, keyword) => {
+  if(keyword === '') return text;
   const reg = new RegExp(keyword, 'gi');
   return text.replace(reg, `<span style="color: red;">${keyword}</span>`);
 };
@@ -162,12 +165,12 @@ const keywordsHighlight = (text, keyword) => {
         <!-- 替換成 slicedUbikeStops -->
         <tr v-for="s in slicedUbikeStops" :key="s.sno">
           <td>{{ s.sno }}</td>
-          <!-- <td>{{ s.sna }}</td> -->
+          <!-- <td>{{ keywordsHighlight(s.sna, searchText) }}</td> -->
           <td v-html="keywordsHighlight(s.sna, searchText)"></td>
           <td>{{ s.sarea }}</td>
           <td>{{ s.sbi }}</td>
           <td>{{ s.tot }}</td>
-          <td>{{ timeFormat(s.mday) }}</td>
+          <td>{{ (s.mday) }}</td>
         </tr>
       </tbody>
     </table>
